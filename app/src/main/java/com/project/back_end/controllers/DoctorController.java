@@ -137,4 +137,13 @@ public class DoctorController {
         return ResponseEntity.status(HttpStatus.OK).body(map);
     }
 
+
+    @GetMapping("/filter/{time}/{speciality}")
+    public ResponseEntity<Map<String, Object>> filter(@PathVariable String time, @PathVariable String speciality)
+    {
+        Map<String,Object> map=new HashMap<>();
+        map=service.filterDoctor("null", speciality, time);
+        return ResponseEntity.status(HttpStatus.OK).body(map);
+    }
+
 }

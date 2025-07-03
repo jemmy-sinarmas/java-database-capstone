@@ -5,21 +5,17 @@ import { API_BASE_URL } from "../config/config.js";
 const ADMIN_API = `${API_BASE_URL}/admin`;
 const DOCTOR_API = `${API_BASE_URL}/doctor/login`;
 
-// Ensure DOM is fully loaded before attaching event listeners
+// Wait until DOM is ready
 window.onload = function () {
-  const adminBtn = document.getElementById("adminLogin");
-  const doctorBtn = document.getElementById("doctorLogin");
+  const adminBtn = document.getElementById("adminLoginBtn");
+  const doctorBtn = document.getElementById("doctorLoginBtn");
 
   if (adminBtn) {
-    adminBtn.addEventListener("click", () => {
-      openModal("adminLogin");
-    });
+    adminBtn.addEventListener("click", () => openModal("adminLogin"));
   }
 
   if (doctorBtn) {
-    doctorBtn.addEventListener("click", () => {
-      openModal("doctorLogin");
-    });
+    doctorBtn.addEventListener("click", () => openModal("doctorLogin"));
   }
 };
 
@@ -42,11 +38,11 @@ window.adminLoginHandler = async function () {
       localStorage.setItem("token", data.token);
       selectRole("admin");
     } else {
-      alert("Invalid admin credentials!");
+      alert("❌ Invalid admin credentials!");
     }
   } catch (err) {
     console.error("Admin login error:", err);
-    alert("Something went wrong. Please try again.");
+    alert("❌ Something went wrong. Please try again.");
   }
 };
 
@@ -69,20 +65,26 @@ window.doctorLoginHandler = async function () {
       localStorage.setItem("token", data.token);
       selectRole("doctor");
     } else {
-      alert("Invalid doctor credentials!");
+      alert("❌ Invalid doctor credentials!");
     }
   } catch (err) {
     console.error("Doctor login error:", err);
-    alert("Something went wrong. Please try again.");
+    alert("❌ Something went wrong. Please try again.");
   }
 };
 
-// Role selection logic (calls render.js)
+// Role selection and redirection
 function selectRole(role) {
   localStorage.setItem("userRole", role);
-  if (role === "admin") {
-    window.location.href = "./adminDashboard.html";
-  } else if (role === "doctor") {
-    window.location.href = "./doctorDashboard.html";
+
+  switch (role) {
+    case "admin":
+      window.location.href = "/pages/adminDashboard.html";
+      break;
+    case "doctor":
+      window.location.href = "/pages/doctorDashboard.html";
+      break;
+    default:
+      alert("❌ Unknown role. Cannot redirect.");
   }
 }
