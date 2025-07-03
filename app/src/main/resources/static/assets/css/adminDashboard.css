@@ -1,56 +1,60 @@
-/* adminDashboard.css */
-
-/* === Reset & Base Setup === */
+/* adminDashboard CSS */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body {
-  height: 100%;
-  font-family: Arial, sans-serif;
-  background-color: #fdfdfd;
-}
-
-/* === Layout & Wrappers === */
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.main-content {
-  flex-grow: 1;
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  background-image: url('../images/index.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-
-/* === Section Heading === */
-h2 {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 50px;
-  color: #003e3e;
-}
-
-/* === Inputs: Search & Filter === */
-#searchBar, #filterTime, #filterSpecialty {
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  margin: 10px;
-  width: 250px;
-  max-width: 90%;
-}
-
-#searchBar:focus,
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }  
+  html, body {
+    height: 100%;
+    font-family: Arial, sans-serif;
+  
+  }  
+  .wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }  
+  h2 {
+    font-size: 32px;
+    margin-bottom: 50px;
+    color : #003e3e;
+  }  
+  .main-content {
+    flex-grow: 1; 
+    padding: 40px;
+    display: flex;
+    
+    flex-direction: column;
+    text-align: center;
+    background-image: url("../images/defineRole/defineRole.png");
+    background-size: cover;       
+    background-position: center;  
+    background-repeat: no-repeat; 
+    background-attachment: fixed;
+    
+  }  
+  button {
+    background-color: #A62B1F;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 20px;
+    margin-top: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 200px;
+  }  
+  button:hover {
+    background-color: #A62B1F; 
+  }
+  .adminBtn {    
+    color: #333;
+    font-weight: bold;
+    background-color: #f4f4f4;
+    width:110px;
+    padding : 10px 0px;
+  }
+  .adminBtn:hover{
+    color: #A62B1F;
+    background-color: #f4f4f4;
+  }
