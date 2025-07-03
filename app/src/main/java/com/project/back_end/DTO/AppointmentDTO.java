@@ -1,34 +1,40 @@
 package com.project.back_end.DTO;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 public class AppointmentDTO {
 
     private Long id;
+    
+    // Simplified Doctor fields
     private Long doctorId;
+
     private String doctorName;
+
+    // Simplified Patient fields
     private Long patientId;
     private String patientName;
     private String patientEmail;
     private String patientPhone;
     private String patientAddress;
+
     private LocalDateTime appointmentTime;
     private int status;
+
+    // Custom getters for the date and time
     private LocalDate appointmentDate;
     private LocalTime appointmentTimeOnly;
     private LocalDateTime endTime;
 
-    // Constructor initializing core fields and computed fields
-    public AppointmentDTO(Long id, Long doctorId, String doctorName,
-                          Long patientId, String patientName,
-                          String patientEmail, String patientPhone,
-                          String patientAddress,
+    // Constructor
+    public AppointmentDTO(Long id, Long doctorId,String doctorName, Long patientId, String patientName,
+                          String patientEmail, String patientPhone, String patientAddress,
                           LocalDateTime appointmentTime, int status) {
         this.id = id;
         this.doctorId = doctorId;
-        this.doctorName = doctorName;
+        this.doctorName=doctorName;
         this.patientId = patientId;
         this.patientName = patientName;
         this.patientEmail = patientEmail;
@@ -36,13 +42,15 @@ public class AppointmentDTO {
         this.patientAddress = patientAddress;
         this.appointmentTime = appointmentTime;
         this.status = status;
-        this.appointmentDate = appointmentTime.toLocalDate();
-        this.appointmentTimeOnly = appointmentTime.toLocalTime();
-        this.endTime = appointmentTime.plusHours(1);
+        
+        
+        // Calculate custom fields
+        this.appointmentDate = appointmentTime != null ? appointmentTime.toLocalDate() : null;
+        this.appointmentTimeOnly = appointmentTime != null ? appointmentTime.toLocalTime() : null;
+        this.endTime = appointmentTime != null ? appointmentTime.plusHours(1) : null;
     }
 
-    // Getters only (no setters) for serialization and immutability
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
