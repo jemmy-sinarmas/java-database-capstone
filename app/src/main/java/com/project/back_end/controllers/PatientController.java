@@ -1,111 +1,81 @@
 package com.project.back_end.controllers;
 
-import com.project.back_end.models.Login;
 import com.project.back_end.models.Patient;
-import com.project.back_end.models.Appointment;
+import com.project.back_end.DTO.Login;
 import com.project.back_end.services.PatientService;
 import com.project.back_end.services.Service;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/patient")
 public class PatientController {
 
-    @Autowired
-    private PatientService patientService;
+    private final PatientService patientService;
+    private final Service service;
 
     @Autowired
-    private Service service;
-
-    // 1. Get Patient Details by token
-    @GetMapping("/{token}")
-    public ResponseEntity<?> getPatient(@PathVariable String token) {
-        boolean isValid = service.validateToken(token, "patient");
-        if (!isValid) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid or expired token.");
-        }
-
-        Patient patient = patientService.getPatientDetails(token);
-        if (patient == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Patient not found.");
-        }
-
-        return ResponseEntity.ok(patient);
+    public PatientController(PatientService patientService, Service service) {
+        this.patientService = patientService;
+        this.service = service;
     }
 
-    // 2. Create a New Patient
-    @PostMapping
-    public ResponseEntity<?> createPatient(@Validated @RequestBody Patient patient) {
-        boolean exists = service.patientExists(patient.getEmail(), patient.getPhoneNumber());
-        if (exists) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Patient with email or phone number already exists.");
+    // 1. Get Patient Details
+    @GetMapping("/{token}")
+    public ResponseEntity<?> getPatientDetails(@PathVariable String token) {
+        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
+        if (!validation.getStatusCode().is2xxSuccessful()) {
+            return validation;
+        }
+        return patientService.getPatientDetails(token);
+    }
+
+    // 2. Create New Patient
+    @PostMapping()
+    public ResponseEntity<Map<String, String>> createPatient(@RequestBody Patient patient) {
+        boolean isValid = service.validatePatient(patient);
+        if (!isValid) {
+            return ResponseEntity.status(409).body(Map.of("message", "Patient with email id or phone no already exist"));
         }
 
-        boolean created = patientService.createPatient(patient);
-        if (created) {
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("Signup successful.");
+        int created = patientService.createPatient(patient);
+        if (created == 1) {
+            return ResponseEntity.ok(Map.of("message", "Signup successful"));
         } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Internal server error.");
+            return ResponseEntity.status(500).body(Map.of("message", "Internal server error"));
         }
     }
 
     // 3. Patient Login
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Validated @RequestBody Login login) {
-        String token = service.validatePatientLogin(login);
-        if (token == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid email or password.");
-        }
-        return ResponseEntity.ok(token);
+    public ResponseEntity<Map<String, String>> patientLogin(@RequestBody Login login) {
+        return service.validatePatientLogin(login);
     }
 
-    // 4. Get Patient Appointments by patient id and token
+    // 4. Get Patient Appointments
     @GetMapping("/{id}/{token}")
-    public ResponseEntity<?> getPatientAppointment(
-            @PathVariable Long id,
-            @PathVariable String token) {
-
-        boolean isValid = service.validateToken(token, "patient");
-        if (!isValid) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid or expired token.");
+    public ResponseEntity<?> getPatientAppointments(@PathVariable Long id, @PathVariable String token) {
+        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
+        if (!validation.getStatusCode().is2xxSuccessful()) {
+            return validation;
         }
-
-        List<Appointment> appointments = patientService.getPatientAppointment(id);
-        if (appointments == null || appointments.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("No appointments found for patient.");
-        }
-
-        return ResponseEntity.ok(appointments);
+        return patientService.getPatientAppointment(id, token);
     }
 
     // 5. Filter Patient Appointments
     @GetMapping("/filter/{condition}/{name}/{token}")
-    public ResponseEntity<?> filterPatientAppointment(
+    public ResponseEntity<?> filterPatientAppointments(
             @PathVariable String condition,
             @PathVariable String name,
             @PathVariable String token) {
 
-        boolean isValid = service.validateToken(token, "patient");
-        if (!isValid) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid or expired token.");
+        ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
+        if (!validation.getStatusCode().is2xxSuccessful()) {
+            return validation;
         }
-
-        List<Appointment> filteredAppointments = service.filterPatient(condition, name, token);
-        return ResponseEntity.ok(filteredAppointments);
+        return service.filterPatient(condition, name, token);
     }
 }

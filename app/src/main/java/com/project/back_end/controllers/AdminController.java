@@ -19,8 +19,9 @@ public class AdminController {
         this.service = service;
     }
 
-    @PostMapping
+    @PostMapping("/login")
     public ResponseEntity<Map<String, String>> adminLogin(@RequestBody Admin admin) {
+        // Calls service to validate admin credentials and generate token if valid
         return service.validateAdmin(admin);
     }
 }

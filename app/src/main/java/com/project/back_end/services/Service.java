@@ -1,156 +1,103 @@
 package com.project.back_end.services;
 
-import com.project.back_end.models.Admin;
 import com.project.back_end.models.Appointment;
-import com.project.back_end.models.Login;
+import com.project.back_end.models.Doctor;
 import com.project.back_end.models.Patient;
-import com.project.back_end.repositories.AdminRepository;
-import com.project.back_end.repositories.DoctorRepository;
-import com.project.back_end.repositories.PatientRepository;
+import com.project.back_end.repo.AdminRepository;
+import com.project.back_end.repo.DoctorRepository;
+import com.project.back_end.repo.PatientRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class Service {
-
     private final TokenService tokenService;
-    private final AdminRepository adminRepository;
     private final DoctorRepository doctorRepository;
+    private final AdminRepository adminRepository;
     private final PatientRepository patientRepository;
-    private final DoctorService doctorService;
     private final PatientService patientService;
 
     @Autowired
-    public Service(TokenService tokenService, AdminRepository adminRepository,
-                   DoctorRepository doctorRepository, PatientRepository patientRepository,
-                   DoctorService doctorService, PatientService patientService) {
+    public Service(TokenService tokenService, DoctorRepository doctorRepository,
+                   AdminRepository adminRepository, PatientRepository patientRepository,
+                   PatientService patientService) {
         this.tokenService = tokenService;
-        this.adminRepository = adminRepository;
         this.doctorRepository = doctorRepository;
+        this.adminRepository = adminRepository;
         this.patientRepository = patientRepository;
-        this.doctorService = doctorService;
         this.patientService = patientService;
     }
 
     public ResponseEntity<Map<String, String>> validateToken(String token, String user) {
-        Map<String, String> response = new HashMap<>();
-        if (!tokenService.validateToken(token, user)) {
-            response.put("error", "Token is expired or invalid");
-            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        boolean isValid = tokenService.validateToken(token, user);
+        if (!isValid) {
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid or expired token"));
         }
-        return new ResponseEntity<>(HttpStatus.OK);
+        return null;
     }
 
-    public ResponseEntity<Map<String, String>> validateAdmin(Admin receivedAdmin) {
-        Map<String, String> response = new HashMap<>();
+    public ResponseEntity<Map<String, String>> validateAdmin(String username, String password) {
         try {
-            Admin admin = adminRepository.findByUsername(receivedAdmin.getUsername());
-            if (admin != null) {
-                if (admin.getPassword().equals(receivedAdmin.getPassword())) {
-                    String token = tokenService.generateToken(admin.getUsername());
-                    response.put("token", token);
-                    return new ResponseEntity<>(response, HttpStatus.OK);
-                } else {
-                    response.put("error", "Invalid password");
-                    return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-                }
-            } else {
-                response.put("error", "Admin not found");
-                return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+            var admin = adminRepository.findByUsername(username);
+            if (admin == null || !admin.getPassword().equals(password)) {
+                return ResponseEntity.status(401).body(Map.of("message", "Invalid credentials"));
             }
+            String token = tokenService.generateToken(username);
+            return ResponseEntity.ok(Map.of("token", token));
         } catch (Exception e) {
-            response.put("error", "Internal server error");
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(500).body(Map.of("message", "Internal server error"));
         }
     }
 
-    public Map<String, Object> filterDoctor(String name, String specialty, String time) {
-        if (name != null && specialty != null && time != null)
-            return doctorService.filterDoctorsByNameSpecilityandTime(name, specialty, time);
-        if (name != null && time != null)
-            return doctorService.filterDoctorByNameAndTime(name, time);
-        if (name != null && specialty != null)
-            return doctorService.filterDoctorByNameAndSpecility(name, specialty);
-        if (specialty != null && time != null)
-            return doctorService.filterDoctorByTimeAndSpecility(specialty, time);
-        if (name != null)
-            return doctorService.findDoctorByName(name);
-        if (specialty != null)
-            return doctorService.filterDoctorBySpecility(specialty);
-        if (time != null)
-            return doctorService.filterDoctorsByTime(time);
-        return doctorService.getDoctors();
+    public List<Doctor> filterDoctor(String name, String time, String spec, List<Doctor> doctors) {
+        return patientService.filterDoctors(name, time, spec, doctors);
     }
 
     public int validateAppointment(Appointment appointment) {
-        try {
-            var doctor = doctorRepository.findById(appointment.getDoctorId());
-            if (doctor.isEmpty()) return -1;
-
-            var availabilityMap = doctorService.getDoctorAvailability(
-                appointment.getDoctorId(), 
-                appointment.getAppointmentTime().toLocalDate()
-            );
-            var availableSlots = availabilityMap.get("availableSlots");
-            if (availableSlots == null) return 0;
-
-            String reqTime = appointment.getAppointmentTime().toLocalTime().toString();
-            for (String slot : availableSlots) {
-                if (slot != null && slot.startsWith(reqTime)) return 1;
-            }
-            return 0;
-        } catch (Exception e) {
-            return 0;
-        }
+        Optional<Doctor> doc = doctorRepository.findById(appointment.getDoctorId());
+        if (doc.isEmpty()) return -1;
+        var slots = doc.get().getAvailableTimes().getOrDefault(appointment.getDate(), List.of());
+        return slots.stream().anyMatch(slot -> slot.getStartTime().equals(appointment.getTime())) ? 1 : 0;
     }
 
     public boolean validatePatient(Patient patient) {
-        Patient existing = patientRepository.findByEmailOrPhone(patient.getEmail(), patient.getPhone());
-        return existing == null;
+        return patientRepository.findByEmail(patient.getEmail()).isEmpty()
+                && patientRepository.findByPhone(patient.getPhone()).isEmpty();
     }
 
-    public ResponseEntity<Map<String, String>> validatePatientLogin(Login login) {
-        Map<String, String> response = new HashMap<>();
+    public ResponseEntity<Map<String, String>> validatePatientLogin(String email, String password) {
         try {
-            Patient patient = patientRepository.findByEmail(login.getEmail());
-            if (patient != null) {
-                if (patient.getPassword().equals(login.getPassword())) {
-                    String token = tokenService.generateToken(patient.getEmail());
-                    response.put("token", token);
-                    return new ResponseEntity<>(response, HttpStatus.OK);
-                } else {
-                    response.put("error", "Invalid password");
-                    return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-                }
-            } else {
-                response.put("error", "Patient not found");
-                return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+            var patient = patientRepository.findByEmail(email);
+            if (patient == null || !patient.getPassword().equals(password)) {
+                return ResponseEntity.status(401).body(Map.of("message", "Invalid login credentials"));
             }
+            String token = tokenService.generateToken(email);
+            return ResponseEntity.ok(Map.of("token", token));
         } catch (Exception e) {
-            response.put("error", "Internal server error");
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(500).body(Map.of("message", "Internal server error"));
         }
     }
 
-    public ResponseEntity<Map<String, Object>> filterPatient(String condition, String name, String token) {
-        Map<String, Object> response = new HashMap<>();
-        String email = tokenService.extractUsername(token);
-
+    public List<?> filterPatient(String condition, String name, String token) {
+        String email = tokenService.extractEmail(token);
+        Optional<Patient> patientOpt = patientRepository.findByEmail(email);
+        if (patientOpt.isEmpty()) return List.of();
+        Patient patient = patientOpt.get();
         if (condition != null && name != null) {
-            response.put("appointments", patientService.filterByDoctorAndCondition(email, name, condition));
+            return patientService.filterByDoctorAndCondition(name, condition, patient.getId());
         } else if (condition != null) {
-            response.put("appointments", patientService.filterByCondition(email, condition));
+            return patientService.filterByCondition(condition, patient.getId());
         } else if (name != null) {
-            response.put("appointments", patientService.filterByDoctor(email, name));
+            return patientService.filterByDoctor(name, patient.getId());
         } else {
-            response.put("appointments", patientService.getPatientAppointment(email));
+            return patientService.getPatientAppointment(patient.getId());
         }
-
-        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
