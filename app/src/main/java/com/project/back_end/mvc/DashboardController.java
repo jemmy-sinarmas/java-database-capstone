@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import com.project.back_end.services.Service;
 
 @Controller
-public class Dashboard {
+public class DashboardController {
 
 
     @Autowired
